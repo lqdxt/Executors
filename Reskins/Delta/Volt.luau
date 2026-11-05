@@ -1,4 +1,6 @@
 -- will change a lot overtime, maybe even changing the entire structure
+-- add the loadstring if you want it forever (in case theres an update this gets fixed fast, so that's why you put the loadstring)
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/lqdxt/Executors/refs/heads/main/Reskins/Delta/Volt.luau"))()
 
 local colorMap = {}
 
