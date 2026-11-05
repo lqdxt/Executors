@@ -1,3 +1,5 @@
+-- will change a lot overtime, maybe even changing the entire structure
+
 local colorMap = {}
 
 local function Reg(r1, g1, b1, r2, g2, b2)
