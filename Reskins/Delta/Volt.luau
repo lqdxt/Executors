@@ -1,5 +1,5 @@
 -- will change a lot overtime, maybe even changing the entire structure
--- add the loadstring in your Autoexecute folder if you want it forever (in case theres an update this gets fixed fast, so that's why you put the loadstring)
+-- add the loadstring if you want it forever (in case theres an update this gets fixed fast, so that's why you put the loadstring)
 -- loadstring(game:HttpGet("https://raw.githubusercontent.com/lqdxt/Executors/refs/heads/main/Reskins/Delta/Volt.luau"))()
 
 local Players = game:GetService("Players")
@@ -30,6 +30,821 @@ local function Bind(sig, fn)
  local c = sig:Connect(fn)
  conns[#conns + 1] = c
  return c
+end
+
+env.__VoltLoadUpdated = function()
+  local colorMap = {}
+
+  local function Reg(r1, g1, b1, r2, g2, b2)
+   colorMap[r1 .. "," .. g1 .. "," .. b1] = Color3.fromRGB(r2, g2, b2)
+  end
+
+  Reg(26, 28, 36, 12, 12, 16)
+  Reg(26, 27, 36, 12, 12, 16)
+  Reg(24, 25, 33, 14, 14, 19)
+  Reg(32, 35, 46, 17, 17, 23)
+  Reg(34, 41, 50, 19, 19, 26)
+  Reg(38, 41, 49, 20, 20, 27)
+  Reg(38, 41, 50, 20, 20, 27)
+  Reg(31, 37, 47, 14, 14, 19)
+  Reg(41, 44, 52, 24, 24, 32)
+  Reg(41, 45, 58, 24, 24, 32)
+  Reg(51, 56, 70, 28, 28, 38)
+  Reg(59, 63, 74, 30, 30, 40)
+  Reg(59, 64, 79, 32, 32, 44)
+  Reg(59, 71, 90, 30, 30, 42)
+  Reg(61, 66, 81, 32, 32, 44)
+  Reg(22, 22, 30, 11, 11, 15)
+  Reg(34, 160, 255, 150, 75, 255)
+  Reg(59, 139, 254, 150, 75, 255)
+  Reg(60, 137, 196, 125, 60, 215)
+  Reg(86, 173, 239, 170, 110, 255)
+  Reg(94, 136, 169, 90, 50, 160)
+  Reg(31, 51, 80, 52, 28, 92)
+  Reg(69, 97, 119, 60, 38, 105)
+  Reg(185, 211, 230, 205, 205, 220)
+  Reg(190, 206, 232, 210, 210, 225)
+  Reg(103, 109, 126, 105, 105, 120)
+  Reg(104, 120, 144, 105, 105, 122)
+  Reg(126, 139, 176, 125, 120, 150)
+  Reg(136, 140, 151, 130, 130, 142)
+  Reg(137, 144, 163, 140, 140, 155)
+  Reg(138, 146, 167, 140, 140, 156)
+  Reg(157, 162, 199, 160, 150, 195)
+  Reg(161, 167, 182, 160, 160, 175)
+  Reg(115, 127, 152, 115, 115, 132)
+  Reg(129, 143, 164, 135, 135, 150)
+  Reg(140, 206, 255, 190, 150, 255)
+  Reg(162, 191, 212, 185, 185, 200)
+
+  local function Key(c)
+   return math.round(c.R * 255) .. "," .. math.round(c.G * 255) .. "," .. math.round(c.B * 255)
+  end
+
+  local outputs = {}
+  for _, v in pairs(colorMap) do outputs[Key(v)] = true end
+
+  local fallbackCache = {}
+  local PURPLE_HUE = 0.755
+
+  local function Remap(c)
+   local k = Key(c)
+   local hit = colorMap[k]
+   if hit then return hit end
+   if outputs[k] then return nil end
+   local cached = fallbackCache[k]
+   if cached ~= nil then return cached or nil end
+   local h, s, v = c:ToHSV()
+   if s < 0.12 or h < 0.5 or h > 0.7 then
+    fallbackCache[k] = false
+    return nil
+   end
+   local new = Color3.fromHSV(PURPLE_HUE, math.clamp(s * 1.05, 0, 1), math.clamp(v * 0.95, 0, 1))
+   outputs[Key(new)] = true
+   fallbackCache[k] = new
+   return new
+  end
+
+  local COLOR_PROPS = {
+   "BackgroundColor3",
+   "TextColor3",
+   "ImageColor3",
+   "BorderColor3",
+   "PlaceholderColor3",
+   "TextStrokeColor3",
+   "ScrollBarImageColor3",
+  }
+
+  local env = (getgenv and getgenv()) or _G
+  if env.__VoltConns then
+   for _, c in ipairs(env.__VoltConns) do pcall(function() c:Disconnect() end) end
+  end
+  local conns = {}
+  env.__VoltConns = conns
+
+  local patched = 0
+  local hooked = setmetatable({}, { __mode = "k" })
+
+  local function Apply(inst, prop)
+   local ok, val = pcall(function() return inst[prop] end)
+   if not ok or typeof(val) ~= "Color3" then return end
+   local new = Remap(val)
+   if new and new ~= val then
+    if pcall(function() inst[prop] = new end) then patched += 1 end
+   end
+  end
+
+  local function PropsFor(inst)
+   if inst:IsA("Color3Value") then return { "Value" } end
+   if inst:IsA("UIStroke") then return { "Color" } end
+   return COLOR_PROPS
+  end
+
+  local function Rebrand(inst)
+   if inst:IsA("TextLabel") or inst:IsA("TextButton") then
+    local function Fix()
+     local ok, t = pcall(function() return inst.Text end)
+     if ok and type(t) == "string" and t:find("Delta", 1, true) then
+      pcall(function() inst.Text = (t:gsub("Delta", "Volt")) end)
+     end
+    end
+    Fix()
+    if not hooked[inst] then
+     local ok, sig = pcall(function() return inst:GetPropertyChangedSignal("Text") end)
+     if ok and sig then table.insert(conns, sig:Connect(Fix)) end
+    end
+   elseif inst:IsA("TextBox") then
+    local ok, p = pcall(function() return inst.PlaceholderText end)
+    if ok and type(p) == "string" and p:find("Delta", 1, true) then
+     pcall(function() inst.PlaceholderText = "Welcome to Volt" end)
+    end
+   end
+  end
+
+  local function PatchInstance(inst)
+   Rebrand(inst)
+   local props = PropsFor(inst)
+   for _, prop in ipairs(props) do
+    Apply(inst, prop)
+   end
+   if hooked[inst] then return end
+   hooked[inst] = true
+   for _, prop in ipairs(props) do
+    local ok, sig = pcall(function() return inst:GetPropertyChangedSignal(prop) end)
+    if ok and sig then
+     local ok2, val = pcall(function() return inst[prop] end)
+     if ok2 and typeof(val) == "Color3" then
+      table.insert(conns, sig:Connect(function() Apply(inst, prop) end))
+     end
+    end
+   end
+  end
+
+  local root = gethui()
+
+  for _, inst in ipairs(root:GetDescendants()) do
+   PatchInstance(inst)
+  end
+
+  table.insert(conns, root.DescendantAdded:Connect(function(inst)
+   task.defer(PatchInstance, inst)
+  end))
+
+  print(string.format("[Volt] %d changes", patched))
+
+
+  local HIGHLIGHTER_URL = "https://raw.githubusercontent.com/lqdxt/Scripts/main/Highlighter.lua"
+  local MAX_CHARS = 60000
+
+  local Palette = {
+   keyword = "#FF6EC7",
+   string = "#FFA760",
+   value = "#5ED8F0",
+   comment = "#6E6E7C",
+   builtin = "#7FD0FF",
+   property = "#5ED8F0",
+   method = "#FFE6A8",
+   identifier = "#D8E4FF",
+   plain = "#6EA8FF",
+  }
+
+  local CURSOR = {
+   Color = Color3.fromRGB(190, 140, 255),
+   Width = 2,
+   CornerRadius = 1,
+   Smooth = true,
+   SmoothTime = 0.07,
+   Blink = true,
+   BlinkRate = 0.53,
+   YBias = 0,
+   FollowCursor = true,
+   ScrollMarginLines = 1.5,
+   ScrollMarginX = 40,
+   TapPlacesCursor = true,
+   TapSlop = 12,
+  }
+
+  local LAYOUT = {
+   PadX = 8,
+   PadY = 4,
+   Gutter = 46,
+   GutterColor = Color3.fromRGB(88, 88, 102),
+   GutterActiveColor = Color3.fromRGB(240, 240, 248),
+   LineHighlight = Color3.fromRGB(255, 255, 255),
+   LineHighlightTransparency = 0.86,
+   LineHeight = 1.5,
+   Font = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+  }
+
+  local function ToHex(c)
+   return string.format("#%02X%02X%02X", math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255))
+  end
+
+  local function HexToColor3(hex)
+   local r, g, b = hex:match("#(%x%x)(%x%x)(%x%x)")
+   return Color3.fromRGB(tonumber(r, 16), tonumber(g, 16), tonumber(b, 16))
+  end
+
+  local function SetupEditor()
+   local TextService = game:GetService("TextService")
+   local TweenService = game:GetService("TweenService")
+   local UIS = game:GetService("UserInputService")
+   local GuiService = game:GetService("GuiService")
+   local RunService = game:GetService("RunService")
+
+   local function Settle()
+    RunService.Heartbeat:Wait()
+    RunService.Heartbeat:Wait()
+   end
+
+   for _, d in ipairs(gethui():GetDescendants()) do
+    local n = d.Name
+    if n == "VoltView" or n == "VoltHL" or n == "VoltCursor" or n == "VoltProbe" or n == "VoltKbPad" then
+     d:Destroy()
+    end
+   end
+
+   local Highlighter
+   do
+    local ok, h = pcall(function()
+     return loadstring(game:HttpGet(HIGHLIGHTER_URL))()
+    end)
+    if ok and type(h) == "table" and type(h.Tokenize) == "function" then
+     Highlighter = h
+    else
+     warn("[Volt] Highlighter failed to load, syntax highlighting skipped")
+    end
+   end
+
+   local ESC = { ["&"] = "&amp;", ["<"] = "&lt;", [">"] = "&gt;", ['"'] = "&quot;", ["'"] = "&apos;" }
+   local function Esc(s)
+    return (s:gsub("[&<>\"']", ESC))
+   end
+
+   local plainHex = Palette.plain
+   local plainColor = HexToColor3(plainHex)
+
+   local function ToRichText(src)
+    if not Highlighter then return Esc(src) end
+    local okT, tokens = pcall(Highlighter.Tokenize, src)
+    if not okT or type(tokens) ~= "table" then
+     return Esc(src)
+    end
+
+    local out, n = {}, 0
+    local pos = 1
+    local runHex, runBuf = nil, {}
+
+    local function Flush()
+     if #runBuf == 0 then return end
+     local text = table.concat(runBuf)
+     n += 1
+     if runHex == plainHex then
+      out[n] = text
+     else
+      out[n] = '<font color="' .. runHex .. '">' .. text .. "</font>"
+     end
+     table.clear(runBuf)
+    end
+
+    local function Add(text, hex)
+     if text == "" then return end
+     if hex ~= runHex then
+      Flush()
+      runHex = hex
+     end
+     runBuf[#runBuf + 1] = Esc(text)
+    end
+
+    for _, tok in ipairs(tokens) do
+     local value = tok.value
+     if type(value) == "string" and value ~= "" then
+      local s, e = string.find(src, value, pos, true)
+      if s then
+       if s > pos then
+        Add(string.sub(src, pos, s - 1), plainHex)
+       end
+       Add(value, Palette[tok.type] or plainHex)
+       pos = e + 1
+      end
+     end
+    end
+    if pos <= #src then
+     Add(string.sub(src, pos), plainHex)
+    end
+    Flush()
+    return table.concat(out)
+   end
+
+   local params = Instance.new("GetTextBoundsParams")
+   params.Width = math.huge
+   local pipeCache = {}
+   local function Measure(str, font, size)
+    params.Font = font
+    params.Size = size
+    local cacheKey = size .. "|" .. font.Family .. "|" .. tostring(font.Weight)
+    local pipeW = pipeCache[cacheKey]
+    if not pipeW then
+     params.Text = "|"
+     pipeW = TextService:GetTextBoundsAsync(params).X
+     pipeCache[cacheKey] = pipeW
+    end
+    params.Text = str .. "|"
+    local b = TextService:GetTextBoundsAsync(params)
+    return math.max(0, b.X - pipeW), b.Y
+   end
+
+   local function GetPitch(probe, box, h)
+    local pitch = h * box.LineHeight
+    pcall(function()
+     probe.FontFace = box.FontFace
+     probe.TextSize = box.TextSize
+     probe.LineHeight = box.LineHeight
+     probe.Text = "A"
+     local one = probe.TextBounds.Y
+     probe.Text = "A\nA"
+     local two = probe.TextBounds.Y
+     if two - one > 1 then pitch = two - one end
+    end)
+    return pitch
+   end
+
+   local function KeyboardTop(scroller)
+    if not UIS.OnScreenKeyboardVisible then return nil end
+    local y = UIS.OnScreenKeyboardPosition.Y
+    local root = scroller:FindFirstAncestorOfClass("ScreenGui")
+    if root and not root.IgnoreGuiInset then
+     y -= GuiService:GetGuiInset().Y
+    end
+    return y
+   end
+
+   local function UpdateKeyboardPad(view, scroller, box)
+    local pad = view:FindFirstChild("VoltKbPad")
+    if not pad then
+     pad = Instance.new("UIPadding")
+     pad.Name = "VoltKbPad"
+     pad.Parent = view
+    end
+    local kbTop = KeyboardTop(scroller)
+    local overlap = 0
+    if kbTop then
+     local winBottom = scroller.AbsolutePosition.Y + scroller.AbsoluteWindowSize.Y
+     overlap = math.max(0, winBottom - kbTop)
+     if overlap > 0 then
+      overlap += CURSOR.ScrollMarginLines * box.TextSize * 1.2 * box.LineHeight
+     end
+    end
+    pad.PaddingBottom = UDim.new(0, math.ceil(overlap))
+   end
+
+   local active = setmetatable({}, { __mode = "k" })
+   local padFns = setmetatable({}, { __mode = "k" })
+   local solidUntil = 0
+   local token = {}
+   env.__VoltCursorToken = token
+   if CURSOR.Blink then
+    task.spawn(function()
+     while env.__VoltCursorToken == token do
+      local now = os.clock()
+      local on = now < solidUntil or (now % (CURSOR.BlinkRate * 2)) < CURSOR.BlinkRate
+      for _, fr in pairs(active) do
+       fr.BackgroundTransparency = on and 0 or 1
+      end
+      task.wait(0.05)
+     end
+    end)
+   end
+
+   local function OnKeyboardChanged()
+    task.wait(0.15)
+    for _, fn in pairs(padFns) do
+     pcall(fn)
+    end
+   end
+   table.insert(conns, UIS:GetPropertyChangedSignal("OnScreenKeyboardVisible"):Connect(OnKeyboardChanged))
+   table.insert(conns, UIS:GetPropertyChangedSignal("OnScreenKeyboardSize"):Connect(OnKeyboardChanged))
+
+   local hooked = setmetatable({}, { __mode = "k" })
+
+   local function HookBox(box)
+    if hooked[box] then return end
+    hooked[box] = true
+
+    local scroller = box.Parent
+    if LAYOUT.Font then pcall(function() box.FontFace = LAYOUT.Font end) end
+    if LAYOUT.LineHeight then pcall(function() box.LineHeight = LAYOUT.LineHeight end) end
+
+    local hiddenProps = {
+     AutomaticSize = Enum.AutomaticSize.None,
+     AnchorPoint = Vector2.new(0.5, 0.5),
+     Position = UDim2.fromScale(0.5, 0.5),
+     Size = UDim2.fromOffset(0, 0),
+     BackgroundTransparency = 1,
+     TextTransparency = 1,
+     TextStrokeTransparency = 1,
+     TextColor3 = Color3.new(0, 0, 0),
+     ShowNativeInput = false,
+     ClipsDescendants = true,
+    }
+    local order = { "AutomaticSize", "AnchorPoint", "Position", "Size", "BackgroundTransparency", "TextTransparency", "TextStrokeTransparency", "TextColor3", "ShowNativeInput", "ClipsDescendants" }
+    local function ApplyHidden()
+     for _, p in ipairs(order) do
+      local v = hiddenProps[p]
+      if box[p] ~= v then box[p] = v end
+     end
+    end
+    ApplyHidden()
+    for _, p in ipairs(order) do
+     table.insert(conns, box:GetPropertyChangedSignal(p):Connect(ApplyHidden))
+    end
+
+    local view = Instance.new("TextButton")
+    view.Name = "VoltView"
+    view.AutoButtonColor = false
+    view.BackgroundTransparency = 1
+    view.BorderSizePixel = 0
+    view.RichText = true
+    view.Text = ""
+    view.TextColor3 = plainColor
+    view.TextXAlignment = Enum.TextXAlignment.Left
+    view.TextYAlignment = Enum.TextYAlignment.Top
+    view.TextWrapped = false
+    view.AutomaticSize = Enum.AutomaticSize.XY
+    view.Position = UDim2.fromOffset(LAYOUT.PadX + LAYOUT.Gutter, LAYOUT.PadY)
+    view.ZIndex = box.ZIndex
+    view.Active = true
+    view.Visible = box.Visible
+    pcall(function() view.FontFace = box.FontFace end)
+    view.TextSize = box.TextSize
+
+    local probe = Instance.new("TextLabel")
+    probe.Name = "VoltProbe"
+    probe.BackgroundTransparency = 1
+    probe.TextTransparency = 1
+    probe.Size = UDim2.fromOffset(0, 0)
+    probe.TextWrapped = false
+    probe.TextXAlignment = Enum.TextXAlignment.Left
+    probe.TextYAlignment = Enum.TextYAlignment.Top
+    probe.Active = false
+    probe.Text = "A"
+    probe.Parent = view
+
+    local fr = Instance.new("Frame")
+    fr.Name = "VoltCursor"
+    fr.BackgroundColor3 = CURSOR.Color
+    fr.BorderSizePixel = 0
+    fr.Size = UDim2.fromOffset(CURSOR.Width, 16)
+    fr.Visible = false
+    fr.Active = false
+    fr.ZIndex = view.ZIndex + 2
+    pcall(function() fr.Interactable = false end)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, CURSOR.CornerRadius)
+    corner.Parent = fr
+    fr.Parent = view
+
+    local line = Instance.new("Frame")
+    line.Name = "VoltLine"
+    line.BackgroundColor3 = LAYOUT.LineHighlight
+    line.BackgroundTransparency = LAYOUT.LineHighlightTransparency
+    line.BorderSizePixel = 0
+    line.Visible = false
+    line.Active = false
+    line.ZIndex = view.ZIndex + 1
+    pcall(function() line.Interactable = false end)
+    line.Parent = view
+
+    local function MakeGutter(name, color)
+     local g = Instance.new("TextLabel")
+     g.Name = name
+     g.BackgroundTransparency = 1
+     g.RichText = false
+     g.Text = ""
+     g.TextColor3 = color
+     g.TextWrapped = false
+     g.TextXAlignment = Enum.TextXAlignment.Right
+     g.TextYAlignment = Enum.TextYAlignment.Top
+     g.AutomaticSize = Enum.AutomaticSize.Y
+     g.Position = UDim2.fromOffset(-LAYOUT.Gutter, 0)
+     g.Size = UDim2.fromOffset(LAYOUT.Gutter - 16, 0)
+     g.Active = false
+     g.ZIndex = view.ZIndex + 2
+     pcall(function() g.Interactable = false end)
+     g.Parent = view
+     return g
+    end
+    local gutter = MakeGutter("VoltGutter", LAYOUT.GutterColor)
+    local gutterCur = MakeGutter("VoltGutterCur", LAYOUT.GutterActiveColor)
+    gutterCur.Visible = false
+    local lastLines = -1
+
+    local function UpdateMin()
+     local w = scroller.AbsoluteWindowSize
+     view.Size = UDim2.fromOffset(math.max(0, w.X - LAYOUT.PadX - LAYOUT.Gutter), math.max(0, w.Y - LAYOUT.PadY))
+    end
+    UpdateMin()
+    table.insert(conns, scroller:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(UpdateMin))
+
+    view.Parent = scroller
+
+    table.insert(conns, box:GetPropertyChangedSignal("Visible"):Connect(function()
+     view.Visible = box.Visible
+    end))
+    table.insert(conns, box.AncestryChanged:Connect(function()
+     if box.Parent == nil then
+      active[box] = nil
+      padFns[box] = nil
+      view:Destroy()
+     end
+    end))
+
+    padFns[box] = function() UpdateKeyboardPad(view, scroller, box) end
+
+    local placeholder = box.PlaceholderText
+    local function HideNativePlaceholder()
+     if box.PlaceholderText ~= "" then
+      placeholder = box.PlaceholderText
+      box.PlaceholderText = ""
+     end
+    end
+    HideNativePlaceholder()
+
+    local pending = false
+    local function Render()
+     pending = false
+     local text = box.Text
+     pcall(function()
+      view.FontFace = box.FontFace
+      view.TextSize = box.TextSize
+      view.LineHeight = box.LineHeight
+      for _, g in ipairs({ gutter, gutterCur }) do
+       g.FontFace = box.FontFace
+       g.TextSize = box.TextSize
+       g.LineHeight = box.LineHeight
+      end
+     end)
+     local n = 1
+     for _ in string.gmatch(text, "\n") do n += 1 end
+     if n ~= lastLines then
+      lastLines = n
+      local t = table.create(n)
+      for i = 1, n do t[i] = i end
+      gutter.Text = table.concat(t, "\n")
+     end
+     if text == "" then
+      view.RichText = true
+      view.Text = '<font color="' .. ToHex(box.PlaceholderColor3) .. '">' .. Esc(placeholder) .. "</font>"
+     elseif #text > MAX_CHARS then
+      view.RichText = false
+      view.Text = text
+     else
+      view.RichText = true
+      view.Text = ToRichText(text)
+     end
+    end
+    Render()
+
+    local version = 0
+    local function Update()
+     version += 1
+     local myVersion = version
+
+     if not box:IsFocused() or box.CursorPosition < 1 then
+      fr.Visible = false
+      line.Visible = false
+      gutterCur.Visible = false
+      active[box] = nil
+      return
+     end
+
+     local text = box.Text
+     local cp = math.clamp(box.CursorPosition, 1, #text + 1)
+     local before = string.sub(text, 1, cp - 1)
+     local _, lineIdx = string.gsub(before, "\n", "")
+     local lineStart = string.match(before, ".*\n()") or 1
+     local lineStr = string.sub(before, lineStart)
+
+     task.spawn(function()
+      local okM, w, h = pcall(Measure, lineStr, box.FontFace, box.TextSize)
+      if not okM or myVersion ~= version then return end
+
+      local pitch = GetPitch(probe, box, h)
+      local x = w
+      local y = lineIdx * pitch + (pitch - h) * CURSOR.YBias
+      local pos = UDim2.fromOffset(x, y)
+
+      local ly = lineIdx * pitch
+      line.Position = UDim2.fromOffset(-LAYOUT.Gutter, ly)
+      line.Size = UDim2.new(1, LAYOUT.Gutter, 0, pitch)
+      line.Visible = true
+      gutterCur.Text = tostring(lineIdx + 1)
+      gutterCur.Position = UDim2.fromOffset(-LAYOUT.Gutter, ly)
+      gutterCur.Visible = true
+
+      fr.Size = UDim2.fromOffset(CURSOR.Width, h)
+      if CURSOR.Smooth and fr.Visible then
+       TweenService:Create(fr, TweenInfo.new(CURSOR.SmoothTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = pos }):Play()
+      else
+       fr.Position = pos
+      end
+      fr.Visible = true
+      active[box] = fr
+      solidUntil = os.clock() + CURSOR.BlinkRate
+
+      if CURSOR.FollowCursor then
+       UpdateKeyboardPad(view, scroller, box)
+       Settle()
+       if myVersion ~= version then return end
+
+       local winPos = scroller.AbsolutePosition
+       local winSize = scroller.AbsoluteWindowSize
+       local winBottom = winPos.Y + winSize.Y
+       local kbTop = KeyboardTop(scroller)
+       if kbTop then winBottom = math.min(winBottom, kbTop) end
+
+       local curX = view.AbsolutePosition.X + x
+       local curTop = view.AbsolutePosition.Y + y
+       local curBottom = curTop + h
+       local marginY = pitch * CURSOR.ScrollMarginLines
+       local marginX = CURSOR.ScrollMarginX
+
+       local canvas = scroller.CanvasPosition
+       local dy, dx = 0, 0
+       local fitsY = scroller.AbsoluteCanvasSize.Y <= winSize.Y + 1
+       if fitsY then
+        if canvas.Y ~= 0 then dy = -canvas.Y end
+       elseif curBottom + marginY > winBottom then
+        dy = (curBottom + marginY) - winBottom
+       elseif curTop - marginY < winPos.Y then
+        dy = (curTop - marginY) - winPos.Y
+       end
+       if curX + marginX > winPos.X + winSize.X then
+        dx = (curX + marginX) - (winPos.X + winSize.X)
+       elseif curX - marginX < winPos.X then
+        dx = (curX - marginX) - winPos.X
+       end
+       if math.abs(dx) > 0.5 or math.abs(dy) > 0.5 then
+        scroller.CanvasPosition = Vector2.new(math.max(0, canvas.X + dx), math.max(0, canvas.Y + dy))
+       end
+      end
+     end)
+    end
+
+    local scheduled, dirtyRender = false, false
+    local function Schedule(renderToo)
+     if renderToo then dirtyRender = true end
+     if scheduled then return end
+     scheduled = true
+     task.defer(function()
+      scheduled = false
+      if dirtyRender then
+       dirtyRender = false
+       Render()
+      end
+      Update()
+     end)
+    end
+    table.insert(conns, box:GetPropertyChangedSignal("Text"):Connect(function() Schedule(true) end))
+    table.insert(conns, box:GetPropertyChangedSignal("TextSize"):Connect(function() Schedule(true) end))
+    table.insert(conns, box:GetPropertyChangedSignal("FontFace"):Connect(function() Schedule(true) end))
+    table.insert(conns, box:GetPropertyChangedSignal("PlaceholderText"):Connect(function()
+     HideNativePlaceholder()
+     Schedule(true)
+    end))
+    table.insert(conns, box:GetPropertyChangedSignal("CursorPosition"):Connect(function() Schedule(false) end))
+    table.insert(conns, box.Focused:Connect(function() Schedule(false) end))
+    table.insert(conns, box.FocusLost:Connect(function()
+     version += 1
+     fr.Visible = false
+     line.Visible = false
+     gutterCur.Visible = false
+     active[box] = nil
+    end))
+
+    local function FocusAt(guiPos)
+     box:CaptureFocus()
+     if not CURSOR.TapPlacesCursor then return end
+     task.spawn(function()
+      local text = box.Text
+      if text == "" then return end
+
+      local okM, _, h = pcall(Measure, "A", box.FontFace, box.TextSize)
+      if not okM then return end
+      local pitch = GetPitch(probe, box, h)
+      local relX = guiPos.X - view.AbsolutePosition.X
+      local relY = guiPos.Y - view.AbsolutePosition.Y
+      local lineNo = math.max(0, math.floor(relY / pitch))
+
+      local startPos, curLine = 1, 0
+      while curLine < lineNo do
+       local nl = string.find(text, "\n", startPos, true)
+       if not nl then break end
+       startPos = nl + 1
+       curLine += 1
+      end
+      local nl = string.find(text, "\n", startPos, true)
+      local lineStr = string.sub(text, startPos, nl and (nl - 1) or #text)
+
+      local function W(k)
+       local okW, width = pcall(Measure, string.sub(lineStr, 1, k), box.FontFace, box.TextSize)
+       return okW and width or math.huge
+      end
+
+      local lo, hi = 0, #lineStr
+      while lo < hi do
+       local mid = math.floor((lo + hi) / 2)
+       if W(mid) >= relX then hi = mid else lo = mid + 1 end
+      end
+      local k = lo
+      if k > 0 and (relX - W(k - 1)) < (W(k) - relX) then
+       k -= 1
+      end
+
+      local target = startPos + k
+      local tries = 0
+      while not box:IsFocused() and tries < 15 do
+       RunService.Heartbeat:Wait()
+       tries += 1
+      end
+      Settle()
+      if box:IsFocused() then
+       box.CursorPosition = target
+       RunService.Heartbeat:Wait()
+       if box:IsFocused() and box.CursorPosition ~= target then
+        box.CursorPosition = target
+       end
+      end
+     end)
+    end
+
+    local downPos
+    table.insert(conns, view.InputBegan:Connect(function(input)
+     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+      downPos = Vector2.new(input.Position.X, input.Position.Y)
+     end
+    end))
+    table.insert(conns, view.InputEnded:Connect(function(input)
+     if not downPos then return end
+     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+      local up = Vector2.new(input.Position.X, input.Position.Y)
+      local moved = (up - downPos).Magnitude
+      downPos = nil
+      if moved <= CURSOR.TapSlop then
+       FocusAt(up)
+      end
+     end
+    end))
+
+    local lastCursor, lastSelStart = 1, -1
+    table.insert(conns, box:GetPropertyChangedSignal("CursorPosition"):Connect(function()
+     if box.CursorPosition >= 1 then
+      lastCursor = box.CursorPosition
+      lastSelStart = box.SelectionStart
+     end
+    end))
+    table.insert(conns, box:GetPropertyChangedSignal("SelectionStart"):Connect(function()
+     if box.CursorPosition >= 1 then lastSelStart = box.SelectionStart end
+    end))
+    table.insert(conns, box.FocusLost:Connect(function(enterPressed)
+     if not enterPressed then return end
+     local text = box.Text
+     local from = math.clamp(lastCursor, 1, #text + 1)
+     local to = from
+     if lastSelStart and lastSelStart >= 1 and lastSelStart ~= from then
+      from, to = math.min(from, lastSelStart), math.max(from, lastSelStart)
+     end
+     local newText = string.sub(text, 1, from - 1) .. "\n" .. string.sub(text, to)
+     local newCursor = from + 1
+     task.defer(function()
+      box.Text = newText
+      box:CaptureFocus()
+      task.wait()
+      if box:IsFocused() then box.CursorPosition = newCursor end
+      lastCursor = newCursor
+      lastSelStart = -1
+     end)
+    end))
+   end
+
+   local function Consider(inst)
+    if inst:IsA("TextBox") and inst.MultiLine then
+     local p = inst.Parent
+     if p and p.Name == "Code" and p:IsA("ScrollingFrame") then
+      HookBox(inst)
+     end
+    end
+   end
+
+   for _, inst in ipairs(gethui():GetDescendants()) do
+    Consider(inst)
+   end
+   table.insert(conns, gethui().DescendantAdded:Connect(function(inst)
+    task.defer(Consider, inst)
+   end))
+  end
+
+  SetupEditor()
 end
 
 local T = {
@@ -287,7 +1102,7 @@ Label(titlebar, { Name = "Title", AnchorPoint = Vector2.new(0.5, 0.5), Position 
 
 local clientName = "client_" .. LP.Name
 local chip = Label(titlebar, {
- AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -112, 0.5, 0), Size = UDim2.fromOffset(120, 22),
+ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -176, 0.5, 0), Size = UDim2.fromOffset(110, 22),
  Text = clientName, TextSize = 12, TextTruncate = Enum.TextTruncate.AtEnd, TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = T.text,
 })
 
@@ -538,6 +1353,23 @@ local codeBox = New("TextBox", {
  TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
  PlaceholderText = "-- Write your script here", PlaceholderColor3 = T.dim, Text = "", Size = UDim2.fromOffset(0, 0),
 }, codeScroll)
+
+if deltaGui then
+ pcall(function()
+  local code = deltaGui:FindFirstChild("Code", true)
+  local src
+  if code then
+   for _, tb in ipairs(code:GetChildren()) do
+    if tb:IsA("TextBox") then src = tb if tb.Visible then break end end
+   end
+  end
+  if src then
+   for _, prop in ipairs({ "MultiLine", "TextWrapped", "ClearTextOnFocus", "TextEditable", "RichText", "TextScaled", "TextTruncate", "Selectable", "Active", "Interactable", "AutoLocalize" }) do
+    pcall(function() codeBox[prop] = src[prop] end)
+   end
+  end
+ end)
+end
 
 local tabs, activeTab = {}, nil
 local loadingText = false
@@ -823,7 +1655,7 @@ local function FileRow(parent, f, order, deletable)
   if f.btns.exec then
    right += 26
    IconButton(row, "play", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -4 - (right - 26), 0.5, 0), Size = UDim2.fromOffset(22, 22), BackgroundTransparency = 1 }, function()
-    Log("volt", "Executing " .. f.name .. " (via Delta)...")
+    Log("volt", "Executing " .. f.name)
     Fire(f.btns.exec)
    end, 11, T.accentHi)
   end
@@ -888,7 +1720,6 @@ local function Execute(src, label)
   Log("error", tostring(err))
   return
  end
- Log("volt", "Executing " .. (label or "script") .. "...")
  task.spawn(function()
   local ok, e = pcall(fn)
   if not ok then Log("error", tostring(e)) end
@@ -919,7 +1750,68 @@ local function Clipboard(set, text)
  end
 end
 
+local function LabelOf(b)
+ local t = b:FindFirstChildWhichIsA("TextLabel", true)
+ return t and t.Text:upper() or ""
+end
+local function InHub(o)
+ local p = o.Parent
+ while p and p ~= deltaGui do
+  if p.Name == "Home" or p.Name == "Hub" or p.Name == "Holder" then return true end
+  p = p.Parent
+ end
+ return false
+end
+
+local function FindDeltaClipboardBtn()
+ if not deltaGui then return nil end
+ local executeBtn
+ for _, d in ipairs(deltaGui:GetDescendants()) do
+  if d:IsA("TextLabel") and not InHub(d) then
+   local u = d.Text:upper()
+   local b = d:FindFirstAncestorWhichIsA("GuiButton")
+   if b then
+    if u:find("EXECUTE", 1, true) and u:find("CLIPBOARD", 1, true) then return b end
+    if u == "EXECUTE" and not executeBtn then executeBtn = b end
+   end
+  end
+ end
+ if executeBtn and executeBtn.Parent then
+  local pick, count = nil, 0
+  for _, sib in ipairs(executeBtn.Parent:GetChildren()) do
+   if sib:IsA("GuiButton") and sib ~= executeBtn then
+    local l = LabelOf(sib)
+    if l:find("CLIP", 1, true) then return sib end
+    if l ~= "CLEAR" then pick, count = sib, count + 1 end
+   end
+  end
+  if count == 1 then return pick end
+ end
+ for _, d in ipairs(deltaGui:GetDescendants()) do
+  if d:IsA("GuiButton") and not InHub(d) then
+   local n = d.Name:lower()
+   if n:find("exec", 1, true) and n:find("clip", 1, true) then return d end
+  end
+ end
+end
+
 local function ExecClipboard()
+ local dBtn = FindDeltaClipboardBtn()
+ if dBtn then
+  local fired = Fire(dBtn)
+  if not fired and firesignal then
+   for _, sig in ipairs({ "Activated", "MouseButton1Click", "MouseButton1Down" }) do
+    if pcall(firesignal, dBtn[sig]) then fired = true break end
+   end
+  end
+  if fired then
+   Log("volt", "Executing clipboard")
+   return
+  end
+  Log("warn", "Found Delta's button (" .. dBtn:GetFullName() .. ") but couldn't fire it, using Volt's runner.")
+ else
+  Log("warn", "Delta's Execute Clipboard button not found, using Volt's runner.")
+ end
  local c = Clipboard(false)
  if type(c) == "string" and c ~= "" then Execute(c, "clipboard") else Log("warn", "Clipboard is empty or unavailable.") end
 end
@@ -933,7 +1825,7 @@ local runIc = Icon(runBtn, "play", Color3.new(1, 1, 1), 12)
 runIc.Position = UDim2.fromOffset(16, 13)
 Label(runBtn, { Position = UDim2.fromOffset(28, 0), Size = UDim2.new(1, -30, 1, 0), Text = "Run", Font = FONT_B, TextSize = 13, TextColor3 = Color3.new(1, 1, 1) })
 
-local Minimize
+local Minimize, SwitchToUpdated
 
 do
  local sc = New("ScrollingFrame", { BackgroundTransparency = 1, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 2, ScrollBarImageColor3 = T.accent }, pageWelcome)
@@ -955,7 +1847,7 @@ do
  Card("Script Hub", "Search and run scripts from ScriptBlox", 1, function() OpenPage("hub") end)
  Card("Settings", "Delta's settings plus editor options", 2, function() OpenPage("settings") end)
  Card("Console", "Show or hide the terminal", 3, function() SetConsole(not Settings.console) end)
- Card("New File", "Start an empty script", 4, function() CreateFile("script.lua", "") end)
+ Card("Delta Version", "Switch to the new Delta reskin", 4, function() SwitchToUpdated() end)
 end
 
 do
@@ -1335,7 +2227,7 @@ local function SetupEditor(box)
  local plainHex = Palette.plain
  local plainColor = HexToColor3(plainHex)
 
- local function ToRichText(src)
+ local function BuildRich(src)
   if not Highlighter or not Settings.highlight then return Esc(src) end
   local okT, tokens = pcall(Highlighter.Tokenize, src)
   if not okT or type(tokens) ~= "table" then return Esc(src) end
@@ -1372,6 +2264,14 @@ local function SetupEditor(box)
   if pos <= #src then Add(string.sub(src, pos), plainHex) end
   Flush()
   return table.concat(out)
+ end
+
+ local function ToRichText(src)
+  local ok, res = pcall(BuildRich, src)
+  if not ok or type(res) ~= "string" then return Esc(src) end
+  local plain = res:gsub("<[^>]->", ""):gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&quot;", '"'):gsub("&apos;", "'"):gsub("&amp;", "&")
+  if plain ~= src then return Esc(src) end
+  return res
  end
 
  local params = Instance.new("GetTextBoundsParams")
@@ -1461,9 +2361,10 @@ local function SetupEditor(box)
 
  local hiddenProps = {
   AutomaticSize = Enum.AutomaticSize.None, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
-  Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1, TextTransparency = 1, ClipsDescendants = true,
+  Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1, TextTransparency = 1, TextStrokeTransparency = 1,
+  TextColor3 = Color3.new(0, 0, 0), ShowNativeInput = false, ClipsDescendants = true,
  }
- local order = { "AutomaticSize", "AnchorPoint", "Position", "Size", "BackgroundTransparency", "TextTransparency", "ClipsDescendants" }
+ local order = { "AutomaticSize", "AnchorPoint", "Position", "Size", "BackgroundTransparency", "TextTransparency", "TextStrokeTransparency", "TextColor3", "ShowNativeInput", "ClipsDescendants" }
  local function ApplyHidden()
   for _, p in ipairs(order) do
    local v = hiddenProps[p]
@@ -1853,9 +2754,24 @@ local function ToggleMax()
  end
 end
 
+function SwitchToUpdated()
+ if not deltaGui then
+  Log("warn", "Updated version reskins Delta's own UI, which wasn't found.")
+  return
+ end
+ local dg = deltaGui
+ Unload()
+ pcall(function() dg.Enabled = true end)
+ task.defer(function()
+  local ok, err = pcall(env.__VoltLoadUpdated)
+  if not ok then warn("[Volt] Updated version failed: " .. tostring(err)) end
+ end)
+end
+
 WinBtn("x", 6, Unload)
 WinBtn("max", 36, ToggleMax)
 WinBtn("minus", 66, Minimize)
+
 
 local startPos
 Drag(titlebar, function() startPos = Vector2.new(win.Position.X.Offset, win.Position.Y.Offset) end, function(d)
